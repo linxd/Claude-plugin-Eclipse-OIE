@@ -350,7 +350,7 @@ There is no build workflow in this repository; build and test locally before you
 
 ## Conventions
 
-- The project is licensed under the MPL 2.0 ([LICENSE](../LICENSE)).
+- Every source file starts with the MPL 2.0 header ([LICENSE](../LICENSE)).
 - Only JDK and host types cross the engine boundary; nothing outside `engine/` imports the SDK.
 - Nothing leaves the server without going through the masker; nothing changes in OIE without the user's approval.
 - A tool never gives Claude more than the user could see or do in OIE.
