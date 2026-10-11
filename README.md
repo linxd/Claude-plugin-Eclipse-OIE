@@ -178,6 +178,8 @@ mvn package
 
 Result: `target/claude-assistant-<version>.zip`.
 
+See the [development guide](docs/development.md) for the engine jars to install, the architecture (the isolated engine, tools, approval, masking, permissions), testing and releasing.
+
 ### Structure
 
 - `shared` – the REST interface (`/api/extensions/claude`); JSON as text, so no plugin classes have
