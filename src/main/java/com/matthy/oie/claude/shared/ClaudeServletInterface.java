@@ -107,6 +107,12 @@ public interface ClaudeServletInterface extends BaseServletInterface {
     String getSettings() throws ClientException;
 
     @GET
+    @Path("/models")
+    @Operation(summary = "Returns the models the API key can use, from Anthropic's Models API (cached for a day), or a fixed list when it cannot be read.")
+    @MirthOperation(name = "claudeGetModels", display = "Get Claude models", permission = PERMISSION_USE, auditable = false)
+    String getModels(@Param("refresh") @Parameter(description = "Bypass the one-day cache.") @QueryParam("refresh") boolean refresh) throws ClientException;
+
+    @GET
     @Path("/spend")
     @Operation(summary = "Returns the organization's spend this month from the Anthropic Cost API. Needs an Admin API key in the settings.")
     @MirthOperation(name = "claudeGetSpend", display = "Get Claude spend", permission = PERMISSION_SETTINGS, auditable = false)

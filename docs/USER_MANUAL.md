@@ -1,8 +1,8 @@
 # Claude Assistant for OIE — User Manual
 
-Version 1.0.0 · September 2026
+Version 1.1.0 · October 2026
 
-The Claude Assistant (version 1.0.0) puts a Claude chat inside the Open Integration Engine Administrator and web administrator. It reads channels, messages, logs and scripts, and it changes nothing without your approval.
+The Claude Assistant (version 1.1.0) puts a Claude chat inside the Open Integration Engine Administrator and web administrator. It reads channels, messages, logs and scripts, and it changes nothing without your approval.
 
 > **Unofficial plugin.** This is a community-built plugin. It is not affiliated with, endorsed by or supported by Anthropic. Claude and Anthropic are trademarks of Anthropic, PBC.
 >
@@ -81,7 +81,7 @@ The key is stored encrypted on the server and never sent back to the Administrat
 | Setting | Default | What it does |
 | --- | --- | --- |
 | API key | none | Anthropic key used for every question |
-| Model | `claude-opus-5` | The Claude model that answers |
+| Model | `claude-opus-5` | The Claude model that answers. The list shows the models your API key can use, newest first, as Anthropic reports them; you can also type a model ID |
 | Effort | `high` | How hard Claude thinks; lower is faster and cheaper |
 | Max tool calls | 25 | Lookups Claude may do for one question |
 | Response language | Automatic | Automatic answers in the language of the question; a fixed language always answers in that language |
@@ -91,6 +91,12 @@ The key is stored encrypted on the server and never sent back to the Administrat
 | Admin API key | none | Optional, only for the spend figures (see *Usage and costs*) |
 
 To get an API key, sign in at [console.anthropic.com](https://console.anthropic.com), open *API keys* and click *Create key*. Copy it straight away: the Console shows it only once.
+
+**The model list.** Once an API key is saved, the server asks Anthropic which models the key can use and keeps that list for a day; *Refresh list* next to the field asks again. A model Anthropic adds therefore appears without a new plugin version. The line below the field says where the list comes from:
+
+- *N models from Anthropic, updated …*: the current list.
+- A message and *a fixed list is shown*: Anthropic could not be asked (no API key yet, no internet, a rejected key). The plugin's own list is shown instead; the reason is in the message.
+- An orange warning: the saved model is no longer in Anthropic's list, so it may have been retired. It stays selected until you choose another model; questions may fail until you do.
 
 ## Using the Administrator (Swing) client
 

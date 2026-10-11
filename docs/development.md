@@ -117,8 +117,8 @@ The server side:
 
 The Anthropic Java SDK needs Jackson 2.19, Kotlin and OkHttp. OIE ships Jackson 2.14 and no Kotlin. Shading (relocating) the SDK does not work: Kotlin reflection, used by `jackson-module-kotlin`, reads the original class names from Kotlin metadata. So the SDK and the code that uses it run in their own class loader.
 
-- **`ModelLoop`** and **`SpendReader`** are the interfaces the server uses. Only JDK types and host-side classes (`ChatJob`, `Conversation`, `ModelLoop.ToolCaller`) cross them; never SDK or Jackson types. A conversation's SDK history is kept on the host as an opaque `Object`.
-- **`EngineLoader`** creates a child-first `URLClassLoader` over every jar in `lib/` and instantiates `engine.SdkModelLoop` and `engine.SdkSpendReader`.
+- **`ModelLoop`**, **`SpendReader`** and **`ModelReader`** are the interfaces the server uses. Only JDK types and host-side classes (`ChatJob`, `Conversation`, `ModelLoop.ToolCaller`) cross them; never SDK or Jackson types. A conversation's SDK history is kept on the host as an opaque `Object`.
+- **`EngineLoader`** creates a child-first `URLClassLoader` over every jar in `lib/` and instantiates `engine.SdkModelLoop`, `engine.SdkSpendReader` and `engine.SdkModelReader`.
 - These prefixes always come from the parent: `java.`, `javax.`, `jdk.`, `sun.`, `com.sun.`, `org.w3c.`, `org.xml.`, `com.matthy.oie.claude.server.`, `com.matthy.oie.claude.shared.`, `com.mirth.`, `org.apache.logging.`, `org.slf4j.`.
 - Jackson and Kotlin find classes through the thread's context class loader, so `SdkModelLoop` sets it to the engine loader while it works.
 
@@ -216,7 +216,7 @@ The user sends, edits or withholds it (`POST /jobs/{id}/review`). **Edited text 
 
 | Permission | Operations |
 | --- | --- |
-| Use Claude Assistant (`PERMISSION_USE`) | chat, jobs, review, cancel, conversations, read settings |
+| Use Claude Assistant (`PERMISSION_USE`) | chat, jobs, review, cancel, conversations, read settings, model list |
 | Run Claude Assistant actions (`PERMISSION_ACTIONS`) | confirm an action |
 | Manage Claude Assistant settings (`PERMISSION_SETTINGS`) | change settings, read spend |
 
@@ -243,7 +243,7 @@ Audit events:
 
 **Spend** (`GET /spend`, *Manage settings* permission) uses the optional Admin API key: `SdkSpendReader` reads the Cost API for the organization and the plugin key's workspace, and the Usage API for the tokens this month. The result is cached for a minute, as Anthropic asks. The cost report's buckets end *before* `ending_at`, so the request must reach past today.
 
-**The model list** is in three places: `MODELS` in `ClaudeSettingsPanel` (Swing), `MODELS` in `webadmin/web/plugin.js` and `Settings.DEFAULT_MODEL`. Update all three, and the README and user manual, when models change.
+**The model list** (`GET /models`, *Use* permission) comes from Anthropic's Models API: `SdkModelReader` lists the models the plugin's API key can use (all pages), `AssistantService.models` caches the result for a day per API key (*Refresh list* bypasses the cache), and `ModelList` sorts it newest first. When the list cannot be read (no API key, no engine, an error from Anthropic) `ModelList.FALLBACK` is used instead, with the reason in `note`; failures are not cached. A saved model that is not in the list is kept at the top, marked `unlisted`, and with Anthropic's list also gets a `warning`. Both clients only show what the server returns, so the fixed list lives in one place: `ModelList.FALLBACK`. Keep `Settings.DEFAULT_MODEL` in it (a test checks that).
 
 ## The REST API
 
@@ -260,6 +260,7 @@ Audit events:
 | `GET /conversations/{id}/export` | A conversation as Markdown. |
 | `POST /conversations/{id}/resume` | Continue a conversation. |
 | `GET /settings`, `PUT /settings` | Read and change the settings (keys only as hints). |
+| `GET /models` | The models for the settings screens (Anthropic's list or the fixed one). |
 | `GET /spend` | Spend and tokens this month. |
 
 Bodies and responses are **JSON as text** (`text/plain`), so no plugin class passes through the engine's XStream serializer. Errors carry a readable explanation in the response body; both clients show that rather than a stack trace.
@@ -291,7 +292,7 @@ It uses the same REST API and the same 800 ms polling, so masking, permissions, 
 mvn test
 ```
 
-There are 68 tests (JUnit 4). They need no engine, no network and no API key.
+There are 74 tests (JUnit 4). They need no engine, no network and no API key.
 
 | Test | Covers |
 | --- | --- |
@@ -300,6 +301,7 @@ There are 68 tests (JUnit 4). They need no engine, no network and no API key.
 | `FhirMaskerTest` (9) | Person resources in JSON and XML, personal extensions, identifiers, reference displays, narratives, Bundles, FHIR escaped inside tool XML, other resources left readable |
 | `ChannelEditorTest` (8) | Version attributes (also nested), wrappers, malformed XML, credentials emptied, descriptions and generated scripts |
 | `ConversationStoreTest` (7) | Saving, listing and loading per user, replacing, expiry, damaged files, Markdown export, titles |
+| `ModelListTest` (6) | Newest first without duplicates, the fixed list with its reason, a saved model that is no longer listed |
 | `SettingsTest` (7) | Defaults and limits (review, keep days, language), updates that keep what is not given, the language in the system prompt |
 | `engine/FallbackTest`, `HistoryTest`, `UsageTest` (2 each) | Fallback handling, history JSON, usage lines |
 | `client/ClaudeSettingsPanelTest` (1) | The cache share in the token figures |
