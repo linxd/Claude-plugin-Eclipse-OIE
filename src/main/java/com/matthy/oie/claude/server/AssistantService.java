@@ -107,6 +107,15 @@ public class AssistantService {
     private String cachedSpendKey;
     private long cachedSpendAt;
 
+    /** New models are rare; a day keeps the settings screen fast. Refresh asks again. */
+    private static final long MODELS_CACHE_MS = TimeUnit.DAYS.toMillis(1);
+    /** Own lock: reading the list can take seconds and must not hold up chats or settings. */
+    private final Object modelsLock = new Object();
+    private ModelReader modelReader;
+    private JsonNode cachedModels;
+    private String cachedModelsKey;
+    private long cachedModelsAt;
+
     public AssistantService(Settings settings) {
         try {
             engine = new EngineLoader();
@@ -191,6 +200,40 @@ public class AssistantService {
         cachedSpendKey = cacheKey;
         cachedSpendAt = now;
         return cachedSpend;
+    }
+
+    /**
+     * The models for the settings screens as JSON text (see {@link ModelList}): Anthropic's list for
+     * the configured API key, cached for a day, or the fixed list when it cannot be read. Never throws.
+     *
+     * @param refresh bypass the cache
+     */
+    public String models(boolean refresh) {
+        Settings s = settings;
+        if (s.apiKey.isEmpty()) {
+            return ModelList.build(null, "Set an Anthropic API key to load the model list from Anthropic; a fixed list is shown.", s.model, 0).toString();
+        }
+        if (engine == null) {
+            return ModelList.build(null, "The Claude assistant cannot start: " + engineError, s.model, 0).toString();
+        }
+        synchronized (modelsLock) {
+            long now = System.currentTimeMillis();
+            if (refresh || cachedModels == null || !s.apiKey.equals(cachedModelsKey) || now - cachedModelsAt >= MODELS_CACHE_MS) {
+                try {
+                    if (modelReader == null) {
+                        modelReader = engine.createModelReader();
+                    }
+                    cachedModels = MAPPER.readTree(modelReader.list(s.apiKey));
+                    cachedModelsKey = s.apiKey;
+                    cachedModelsAt = now;
+                } catch (Exception e) {
+                    // Not cached, so the next visit tries again; the fixed list keeps the screen usable.
+                    logger.warn("Claude Assistant: could not load the model list: " + e.getMessage());
+                    return ModelList.build(null, (e.getMessage() != null ? e.getMessage() : e.toString()) + " A fixed list is shown.", s.model, 0).toString();
+                }
+            }
+            return ModelList.build(cachedModels, null, s.model, cachedModelsAt).toString();
+        }
     }
 
     public void shutdown() {

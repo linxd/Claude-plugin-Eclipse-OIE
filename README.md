@@ -135,7 +135,9 @@ was reviewed. The content itself is never logged.
    encrypted and never sent back to the Administrator; the field is emptied after saving and the
    line below it shows *Set: sk-ant-…xxxx*.
 3. Defaults: model `claude-opus-5`, effort `high`, at most 25 tool calls per question, response
-   language *Automatic* (Claude answers in the language of the question). Pick a fixed language in
+   language *Automatic* (Claude answers in the language of the question). The **Model** list comes
+   from Anthropic's Models API for your key (newest first, refreshed daily), so new models appear
+   without a plugin update; without a connection a fixed list is shown. Pick a fixed language in
    **Response language** to have Claude always answer in that language, whatever language the
    question or the server data is in.
 

@@ -26,6 +26,7 @@ final class EngineLoader {
 
     private static final String ENGINE_CLASS = "com.matthy.oie.claude.engine.SdkModelLoop";
     private static final String SPEND_CLASS = "com.matthy.oie.claude.engine.SdkSpendReader";
+    private static final String MODELS_CLASS = "com.matthy.oie.claude.engine.SdkModelReader";
 
     /** Always from the engine's parent: the JDK, the host side of this plugin and the OIE APIs it uses. */
     private static final String[] PARENT_FIRST = { "java.", "javax.", "jdk.", "sun.", "com.sun.", "org.w3c.", "org.xml.", "com.matthy.oie.claude.server.", "com.matthy.oie.claude.shared.", "com.mirth.", "org.apache.logging.", "org.slf4j." };
@@ -53,6 +54,10 @@ final class EngineLoader {
 
     SpendReader createSpendReader() throws Exception {
         return (SpendReader) Class.forName(SPEND_CLASS, true, loader).getConstructor().newInstance();
+    }
+
+    ModelReader createModelReader() throws Exception {
+        return (ModelReader) Class.forName(MODELS_CLASS, true, loader).getConstructor().newInstance();
     }
 
     /** extensions/claude-assistant/lib, next to the server jar this class was loaded from. */

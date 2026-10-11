@@ -10,7 +10,6 @@ const GLOBAL_SCRIPTS_CONTEXT = "Global Scripts (deploy, undeploy, preprocessor a
 const GLOBAL_SCRIPTS_SUGGESTION = "Explain what the global scripts do and point out weak spots.";
 const POLL_MS = 800;
 const BILLING_URL = "https://platform.claude.com/settings/billing";
-const MODELS = ["claude-opus-5", "claude-opus-5-5", "claude-sonnet-5", "claude-fable-5-1", "claude-haiku-4-5"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 // Stored value (English name, used in the system prompt) and the label shown in the dropdown.
 const LANGUAGES = [
@@ -67,6 +66,7 @@ const CSS = `
 .claude-settings .claude-spend { font-weight: 600; }
 .claude-conversations { width: 100%; font-family: inherit; margin-bottom: 8px; }
 .claude-settings .claude-inline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.claude-settings .claude-warning { color: #b35900; }
 `;
 
 let P;
@@ -603,6 +603,8 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
     const [form, setForm] = React.useState(null);
     const [status, setStatus] = React.useState({});
     const [spend, setSpend] = React.useState({ state: "idle" });
+    // The model list comes from the server: Anthropic's, or a fixed list when it cannot be read.
+    const [models, setModels] = React.useState({ state: "idle" });
     const [error, setError] = React.useState(null);
     const formRef = React.useRef(null);
     formRef.current = form;
@@ -618,13 +620,23 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
         }
     }, []);
 
+    const loadModels = React.useCallback(async (refresh) => {
+        setModels({ state: "loading" });
+        try {
+            setModels({ state: "ok", data: await call("GET", "/models", null, refresh ? { refresh: true } : undefined) });
+        } catch (err) {
+            setModels({ state: "error", message: errorText(err) });
+        }
+    }, []);
+
     const show = React.useCallback((s) => {
         setStatus(s);
-        setForm({ apiKey: "", adminApiKey: "", clearAdminApiKey: false, model: s.model || MODELS[0], effort: s.effort || "high", maxToolCalls: s.maxToolCalls || 25, maskPatterns: s.maskPatterns || "", responseLanguage: s.responseLanguage || "Automatic", reviewBeforeSending: s.reviewBeforeSending || "data", keepConversationsDays: s.keepConversationsDays || 0 });
+        setForm({ apiKey: "", adminApiKey: "", clearAdminApiKey: false, model: s.model || "", effort: s.effort || "high", maxToolCalls: s.maxToolCalls || 25, maskPatterns: s.maskPatterns || "", responseLanguage: s.responseLanguage || "Automatic", reviewBeforeSending: s.reviewBeforeSending || "data", keepConversationsDays: s.keepConversationsDays || 0 });
         clean();
+        loadModels(false);
         if (s.adminApiKeySet) loadSpend(false);
         else setSpend({ state: "idle" });
-    }, [loadSpend]);
+    }, [loadSpend, loadModels]);
 
     const load = React.useCallback(async () => {
         try {
@@ -708,13 +720,26 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
         ];
     }
 
+    const modelList = models.state === "ok" ? models.data.models || [] : [];
+    let modelHint;
+    if (models.state === "loading") modelHint = "Loading the model list…";
+    else if (models.state === "error") modelHint = "The model list could not be loaded: " + models.message + " Type a model ID.";
+    else if (models.state === "ok") {
+        const d = models.data;
+        const updated = d.fetchedAt ? ", updated " + new Date(d.fetchedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+        modelHint = d.warning ? e("span", { className: "claude-warning" }, d.warning)
+            : d.source === "anthropic" ? `${modelList.length} models from Anthropic${updated}. You can also type a model ID.`
+                : (d.note || "A fixed list is shown.") + " You can also type a model ID.";
+    }
+
     return e("div", { className: "claude-settings" },
         error ? e("div", { className: "claude-error" }, error) : null,
         row("Anthropic API key:", e("input", { type: "password", value: form.apiKey, onChange: set("apiKey"), autoComplete: "off" }),
             status.apiKeySet ? "Set: " + status.apiKeyHint : "No API key set yet."),
-        row("Model:", e("span", null,
+        row("Model:", e("span", { className: "claude-inline" },
             e("input", { type: "text", list: "claude-models", value: form.model, onChange: set("model"), style: { width: 260 } }),
-            e("datalist", { id: "claude-models" }, MODELS.map((m) => e("option", { key: m, value: m }))))),
+            e("datalist", { id: "claude-models" }, modelList.map((m) => e("option", { key: m.id, value: m.id, label: m.unlisted ? m.displayName + " – not in the list" : m.displayName }))),
+            e("button", { className: "btn", disabled: models.state === "loading", onClick: () => loadModels(true) }, "Refresh list")), modelHint),
         row("Effort:", e("select", { value: form.effort, onChange: set("effort") }, EFFORTS.map((x) => e("option", { key: x, value: x }, x)))),
         row("Response language:", e("select", { value: form.responseLanguage, onChange: set("responseLanguage") }, LANGUAGES.map(([value, label]) => e("option", { key: value, value }, label)))),
         row("Max. tool calls per question:", e("input", { type: "number", min: 1, max: 100, value: form.maxToolCalls, onChange: set("maxToolCalls"), style: { width: 80 } })),

@@ -122,6 +122,11 @@ public class ClaudeServlet extends MirthServlet implements ClaudeServletInterfac
     }
 
     @Override
+    public String getModels(boolean refresh) {
+        return service().models(refresh);
+    }
+
+    @Override
     public String getSpend(boolean refresh) {
         try {
             return service().spend(refresh);

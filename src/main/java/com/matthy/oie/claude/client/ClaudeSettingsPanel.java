@@ -7,12 +7,20 @@
 package com.matthy.oie.claude.client;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.Box;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JList;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -42,7 +50,6 @@ import net.miginfocom.swing.MigLayout;
  */
 public class ClaudeSettingsPanel extends AbstractSettingsPanel {
 
-    private static final String[] MODELS = { "claude-opus-5", "claude-opus-5-5", "claude-sonnet-5", "claude-fable-5-1", "claude-haiku-4-5" };
     private static final String[] EFFORTS = { "low", "medium", "high", "xhigh", "max" };
     /** Stored values (English names, used in the system prompt), shown with their own name. */
     private static final String[] LANGUAGES = { "Automatic", "English", "Dutch", "German", "French", "Spanish", "Italian", "Portuguese", "Polish", "Swedish", "Danish", "Norwegian", "Finnish" };
@@ -56,7 +63,12 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
 
     private final JPasswordField apiKeyField = new JPasswordField(40);
     private final JLabel apiKeyStatus = new JLabel();
-    private final JComboBox<String> modelBox = new JComboBox<>(MODELS);
+    /** Filled from the server's model list (Anthropic's, or a fixed list); a model ID can also be typed. */
+    private final JComboBox<String> modelBox = new JComboBox<>();
+    private final JButton refreshModels = new JButton("Refresh list");
+    private final JLabel modelNote = new JLabel(" ");
+    /** Display names by model ID, for the dropdown. */
+    private final Map<String, String> modelNames = new HashMap<>();
     private final JComboBox<String> effortBox = new JComboBox<>(EFFORTS);
     private final JComboBox<String> languageBox = new JComboBox<>(LANGUAGE_LABELS);
     private final JSpinner maxToolCalls = new JSpinner(new SpinnerNumberModel(25, 1, 100, 1));
@@ -82,6 +94,16 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
         setBackground(Color.WHITE);
 
         modelBox.setEditable(true);
+        modelBox.setPrototypeDisplayValue("claude-sonnet-5-5-20990101 (Claude Sonnet 5.5)");
+        modelBox.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
+                String id = String.valueOf(value);
+                String name = modelNames.get(id);
+                return super.getListCellRendererComponent(list, name == null || name.equals(id) ? id : name + "  (" + id + ")", index, selected, focus);
+            }
+        });
+        modelNote.setForeground(new Color(0x707070));
         maskPatterns.setLineWrap(true);
         clearAdminKey.setBackground(Color.WHITE);
         spendOrganization.setFont(spendOrganization.getFont().deriveFont(Font.BOLD));
@@ -94,7 +116,9 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
         form.add(new JLabel(""));
         form.add(apiKeyStatus, "wrap");
         form.add(new JLabel("Model:"));
-        form.add(modelBox, "wrap, w 260!");
+        form.add(leftRow(modelBox, refreshModels), "wrap");
+        form.add(new JLabel(""));
+        form.add(modelNote, "wrap, w 600!");
         form.add(new JLabel("Effort:"));
         form.add(effortBox, "wrap, w 120!");
         form.add(new JLabel("Response language:"));
@@ -156,6 +180,7 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
         keepDays.addChangeListener(e -> markChanged());
         clearAdminKey.addActionListener(e -> markChanged());
         refreshSpend.addActionListener(e -> loadSpend(true));
+        refreshModels.addActionListener(e -> loadModels(true));
         openBilling.addActionListener(e -> openBilling());
     }
 
@@ -236,7 +261,7 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
             boolean adminSet = s.path("adminApiKeySet").asBoolean();
             adminKeyStatus.setText(adminSet ? "Set: " + s.path("adminApiKeyHint").asText() : "No Admin API key set.");
             clearAdminKey.setVisible(adminSet);
-            modelBox.setSelectedItem(s.path("model").asText(MODELS[0]));
+            modelBox.setSelectedItem(s.path("model").asText(""));
             effortBox.setSelectedItem(s.path("effort").asText("high"));
             languageBox.setSelectedIndex(Math.max(0, java.util.Arrays.asList(LANGUAGES).indexOf(s.path("responseLanguage").asText("Automatic"))));
             maxToolCalls.setValue(s.path("maxToolCalls").asInt(25));
@@ -247,11 +272,70 @@ public class ClaudeSettingsPanel extends AbstractSettingsPanel {
         } finally {
             loading = false;
         }
+        loadModels(false);
         refreshSpend.setEnabled(s.path("adminApiKeySet").asBoolean());
         if (s.path("adminApiKeySet").asBoolean()) {
             loadSpend(false);
         } else {
             showSpend(null, "Set an Admin API key to show the spend this month.");
+        }
+    }
+
+    private void loadModels(boolean refresh) {
+        modelNote.setText("Loading the model list…");
+        refreshModels.setEnabled(false);
+        new SwingWorker<JsonNode, Void>() {
+            @Override
+            protected JsonNode doInBackground() throws Exception {
+                return ClaudeApi.models(refresh);
+            }
+
+            @Override
+            protected void done() {
+                refreshModels.setEnabled(true);
+                try {
+                    showModels(get());
+                } catch (Exception e) {
+                    modelNote.setText("<html>The model list could not be loaded: " + Markdown.escape(ClaudeApi.message(e)) + " Type a model ID.</html>");
+                }
+            }
+        }.execute();
+    }
+
+    /** Fills the dropdown and keeps what is selected or typed, without marking the settings as changed. */
+    private void showModels(JsonNode list) {
+        Object current = modelBox.isEditable() ? modelBox.getEditor().getItem() : modelBox.getSelectedItem();
+        boolean wasLoading = loading;
+        loading = true;
+        try {
+            modelNames.clear();
+            modelBox.removeAllItems();
+            for (JsonNode m : list.path("models")) {
+                String id = m.path("id").asText();
+                String name = m.path("displayName").asText(id);
+                modelNames.put(id, m.path("unlisted").asBoolean() ? name + " – not in the list" : name);
+                modelBox.addItem(id);
+            }
+            modelBox.setSelectedItem(current == null ? "" : String.valueOf(current).trim());
+        } finally {
+            loading = wasLoading;
+        }
+        String text;
+        if (list.hasNonNull("warning")) {
+            text = "<html><font color='#b35900'>" + Markdown.escape(list.path("warning").asText()) + "</font></html>";
+        } else if ("anthropic".equals(list.path("source").asText())) {
+            text = list.path("models").size() + " models from Anthropic" + updated(list.path("fetchedAt").asText("")) + ". You can also type a model ID.";
+        } else {
+            text = "<html>" + Markdown.escape(list.path("note").asText("A fixed list is shown.")) + " You can also type a model ID.</html>";
+        }
+        modelNote.setText(text);
+    }
+
+    private static String updated(String fetchedAt) {
+        try {
+            return ", updated " + DateTimeFormatter.ofPattern("d MMM HH:mm").withZone(ZoneId.systemDefault()).format(Instant.parse(fetchedAt));
+        } catch (Exception e) {
+            return "";
         }
     }
 
