@@ -1,9 +1,13 @@
 {
     "id": "claude-assistant",
-    "name": "Claude Assistant",
+    "name": "Claude 助手",
     "version": "1.1.0",
     "author": "X Connections",
-    "description": "Chat with Claude about channels, messages, errors and scripts - web equivalent of the Swing Claude Assistant (chat page, channel tab, channel and message actions, settings panel). Unofficial plugin, not affiliated with or endorsed by Anthropic; Claude is a trademark of Anthropic, PBC. Each organization is responsible for its own use, including patient data sent to Anthropic.",
-    "oie": { "apiMin": "4.6" },
-    "client": { "entry": "web/plugin.js" }
+    "description": "与 Claude 聊天，讨论通道、消息、错误和脚本 - Swing Claude 助手的 Web 版本（聊天页面、通道选项卡、通道和消息操作、设置面板）。非官方插件，与 Anthropic 无关；Claude 是 Anthropic, PBC 的商标。每个组织负责其自己的使用，包括发送给 Anthropic 的患者数据。",
+    "oie": {
+        "apiMin": "4.6"
+    },
+    "client": {
+        "entry": "web/plugin.js"
+    }
 }

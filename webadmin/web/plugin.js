@@ -6,19 +6,19 @@
 const EXT = "/extensions/claude";
 const STYLE_ID = "claude-assistant-style";
 // The web admin has no plugin hook on the Global Scripts view, so the Claude page offers this context itself.
-const GLOBAL_SCRIPTS_CONTEXT = "Global Scripts (deploy, undeploy, preprocessor and postprocessor). Claude sees the saved version; unsaved changes in the Global Scripts editor are not visible.";
-const GLOBAL_SCRIPTS_SUGGESTION = "Explain what the global scripts do and point out weak spots.";
+const GLOBAL_SCRIPTS_CONTEXT = "全局脚本（部署、卸载、前置处理器和后置处理器）。Claude 看到的是已保存的版本；全局脚本编辑器中未保存的更改不可见。";
+const GLOBAL_SCRIPTS_SUGGESTION = "解释全局脚本的功能并指出薄弱环节。";
 const POLL_MS = 800;
 const BILLING_URL = "https://platform.claude.com/settings/billing";
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 // Stored value (English name, used in the system prompt) and the label shown in the dropdown.
 const LANGUAGES = [
-    ["Automatic", "Automatic (language of the question)"], ["English", "English"], ["Dutch", "Nederlands (Dutch)"], ["German", "Deutsch (German)"],
+    ["Automatic", "自动（问题的语言）"], ["English", "English"], ["Dutch", "Nederlands (Dutch)"], ["German", "Deutsch (German)"],
     ["French", "Français (French)"], ["Spanish", "Español (Spanish)"], ["Italian", "Italiano (Italian)"], ["Portuguese", "Português (Portuguese)"],
     ["Polish", "Polski (Polish)"], ["Swedish", "Svenska (Swedish)"], ["Danish", "Dansk (Danish)"], ["Norwegian", "Norsk (Norwegian)"], ["Finnish", "Suomi (Finnish)"]
 ];
 // Stored value of "Review before sending" and its label.
-const REVIEWS = [["data", "Message content, logs and events (recommended)"], ["all", "Everything, including my question"], ["off", "Off (send without review)"]];
+const REVIEWS = [["data", "消息内容、日志和事件（推荐）"], ["all", "所有内容，包括我的问题"], ["off", "关闭（无审查直接发送）"]];
 // Stroke-only 24x24 path, same format as the built-in icons: an eight-point burst.
 const ICON_PATH = "M12 3v5M12 16v5M3 12h5M16 12h5M5.6 5.6l3.5 3.5M14.9 14.9l3.5 3.5M5.6 18.4l3.5-3.5M14.9 9.1l3.5-3.5";
 
@@ -90,7 +90,7 @@ async function call(method, path, body, params) {
 }
 
 function errorText(err) {
-    if (!err) return "Unknown error";
+    if (!err) return "未知错误";
     const text = err.body || err.message || String(err);
     // The server answers with a readable sentence as the response body.
     return String(text).trim().split(/\r?\n/).pop();
@@ -244,14 +244,14 @@ const chat = {
         if (!text.trim() || this.busy) return;
         this.add("user", text);
         this.busy = true;
-        this.setStatus("Sending…");
+        this.setStatus("发送中…");
         try {
             const res = await call("POST", "/chat", { conversationId: this.conversationId, message: text, context: this.context });
             this.conversationId = res.conversationId;
             this.jobId = res.jobId;
             this.lastSeq = 0;
             this.shownActionId = null;
-            this.setStatus("Claude is thinking…");
+            this.setStatus("Claude 思考中…");
             this.timer = setInterval(() => this.poll(), POLL_MS);
         } catch (err) {
             this.busy = false;
@@ -269,7 +269,7 @@ const chat = {
             if (id === this.jobId) this.handle(job);
         } catch (err) {
             this.finishJob();
-            this.add("error", "Lost connection to the server: " + errorText(err));
+            this.add("error", "与服务器的连接丢失：" + errorText(err));
         } finally {
             this.polling = false;
         }
@@ -278,21 +278,21 @@ const chat = {
     handle(job) {
         for (const ev of job.events || []) {
             this.lastSeq = Math.max(this.lastSeq, ev.seq || 0);
-            if (ev.type === "tool") this.status = "Claude is querying the server…";
+            if (ev.type === "tool") this.status = "Claude 正在查询服务器…";
             this.entries = [...this.entries, { kind: ev.type, text: ev.text }];
         }
         this.partial = job.partial || "";
-        if (this.partial) this.status = "Claude is writing…";
+        if (this.partial) this.status = "Claude 正在写入…";
         const pending = job.pendingAction;
         if (job.state === "WAITING" && pending && pending.id !== this.shownActionId) {
             this.shownActionId = pending.id;
-            this.status = "Waiting for your approval…";
+            this.status = "等待您的批准…";
             this.askApproval(pending);
         }
         const review = job.pendingReview;
         if (job.state === "WAITING" && review && review.id !== this.shownActionId) {
             this.shownActionId = review.id;
-            this.status = "Waiting for your review…";
+            this.status = "等待您的审查…";
             this.askReview(review);
         }
         if (job.state === "DONE" || job.state === "ERROR" || job.state === "CANCELLED") {
@@ -315,7 +315,7 @@ const chat = {
         const id = this.jobId;
         if (!id) return;
         this.finishJob();
-        this.add("info", "Stopped.");
+        this.add("info", "已停止。");
         call("POST", "/jobs/" + encodeURIComponent(id) + "/cancel").catch(() => {});
     },
 
@@ -330,7 +330,7 @@ const chat = {
     /** Downloads the conversation as Markdown, as the server has it: what Claude received (masked) and answered. */
     async exportConversation() {
         if (!this.conversationId) {
-            this.add("info", "There is no conversation to export yet.");
+            this.add("info", "还没有可以导出的对话。");
             return;
         }
         try {
@@ -345,14 +345,14 @@ const chat = {
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (err) {
-            this.add("error", "Export failed: " + errorText(err));
+            this.add("error", "导出失败：" + errorText(err));
         }
     },
 
     /** Lists the user's conversations (current and saved) and continues the chosen one. */
     async chooseConversation() {
         if (this.jobId) {
-            this.add("info", "Wait until Claude has finished, or click Stop.");
+            this.add("info", "请等待 Claude 完成，或点击停止。");
             return;
         }
         let res;
@@ -364,11 +364,11 @@ const chat = {
         }
         const list = res.conversations || [];
         const note = res.keepDays > 0
-            ? "Conversations are saved on the server for " + res.keepDays + " days."
-            : "Conversations are not saved on the server: they are kept for 4 hours and lost on a restart (Settings > Claude Assistant).";
+            ? "对话在服务器上保存 " + res.keepDays +  "天。"
+            : "对话不在服务器上保存：保留 4 小时，重启后丢失（设置 > Claude 助手）。";
         const { h, modal } = P.ui;
         if (list.length === 0) {
-            modal({ title: "Conversations", body: h("div", null, "You have no earlier conversations. " + note), buttons: [{ label: "Close", primary: true, onClick: () => true }] });
+            modal({ title: "对话", body: h("div", null, "您没有早期的对话。" + note), buttons: [{ label: "关闭", primary: true, onClick: () => true }] });
             return;
         }
         // A plain DOM select, so its value can be read back whatever the shell's h() returns.
@@ -378,7 +378,7 @@ const chat = {
         for (const c of list) {
             const option = document.createElement("option");
             option.value = c.id;
-            option.textContent = new Date(c.lastUsed).toLocaleString() + "   " + c.title + (c.id === this.conversationId ? "   (open)" : "");
+            option.textContent = new Date(c.lastUsed).toLocaleString() + "   " + c.title + (c.id === this.conversationId ? "   (当前)" : "");
             select.appendChild(option);
         }
         select.selectedIndex = 0;
@@ -394,12 +394,12 @@ const chat = {
         };
         select.ondblclick = () => { resume(); };
         modal({
-            title: "Conversations",
+            title: "对话",
             size: "lg",
             body: h("div", null, select, h("div.claude-hint", null, note)),
             buttons: [
-                { label: "Cancel", onClick: () => true },
-                { label: "Continue", primary: true, onClick: resume }
+                { label: "取消", onClick: () => true },
+                { label: "继续", primary: true, onClick: resume }
             ]
         });
     },
@@ -407,7 +407,7 @@ const chat = {
     showConversation(resumed) {
         this.conversationId = resumed.conversationId;
         this.entries = (resumed.log || []).map((entry) => ({ kind: entry.type === "question" ? "user" : entry.type, text: entry.text }));
-        this.entries.push({ kind: "info", text: "Continued conversation. Ask your next question." });
+        this.entries.push({ kind: "info", text: "已继续对话。请提出您的下一个问题。" });
         this.notify();
     },
 
@@ -418,24 +418,24 @@ const chat = {
         const decide = async (approved) => {
             if (decided) return true;
             decided = true;
-            this.setStatus(approved ? "Running action…" : "Claude continues…");
+            this.setStatus(approved ? "执行操作中…" : "Claude 继续中…");
             try {
                 await call("POST", "/jobs/" + encodeURIComponent(jobId) + "/confirm", { actionId: pending.id, approved });
-                this.setStatus("Claude continues…");
+                this.setStatus("Claude 继续中…");
             } catch (err) {
-                this.add("error", "Approval failed: " + errorText(err));
+                this.add("error", "批准失败：" + errorText(err));
             }
             return true;
         };
         modal({
-            title: "Approve: " + pending.title,
+            title: "批准：" + pending.title,
             size: "lg",
             body: h("div", null,
-                h("div", null, "Claude wants to run the following action on this server:"),
+                h("div", null, "Claude 希望在此服务器上执行以下操作："),
                 h("pre.claude-detail", null, pending.detail || "")),
             buttons: [
-                { label: "Reject", onClick: () => decide(false) },
-                { label: "Run", danger: true, onClick: () => decide(true) }
+                { label: "拒绝", onClick: () => decide(false) },
+                { label: "执行", danger: true, onClick: () => decide(true) }
             ],
             // Closing the dialog (X, Escape, clicking outside) counts as rejecting, as in Swing.
             onClose: () => { decide(false); }
@@ -455,24 +455,24 @@ const chat = {
         const decide = async (approved) => {
             if (decided) return true;
             decided = true;
-            this.setStatus("Claude continues…");
+            this.setStatus("Claude 继续中…");
             try {
                 await call("POST", "/jobs/" + encodeURIComponent(jobId) + "/review", approved ? { reviewId: review.id, approved, text: text.value } : { reviewId: review.id, approved });
             } catch (err) {
-                this.add("error", "Review failed: " + errorText(err));
+                this.add("error", "审查失败：" + errorText(err));
             }
             return true;
         };
         modal({
-            title: "Review before sending: " + review.title,
+            title: "发送前审查：" + review.title,
             size: "lg",
             body: h("div", null,
-                h("div", null, "This is exactly what will be sent to Claude (Anthropic), after masking. Edit it to remove anything Claude should not see; edited text is masked again before sending."),
+                h("div", null, "这是脱敏后将发送给 Claude (Anthropic) 的完整内容。编辑以移除 Claude 不应看到的内容；编辑后的文本在发送前会再次脱敏。"),
                 text,
-                h("div.claude-hint", null, (review.detail || "").length + " characters. Closing this dialog sends nothing.")),
+                h("div.claude-hint", null, (review.detail || "").length + " 个字符。关闭此对话框将不发送任何内容。")),
             buttons: [
-                { label: "Don't send", onClick: () => decide(false) },
-                { label: "Send to Claude", primary: true, onClick: () => decide(true) }
+                { label: "不发送", onClick: () => decide(false) },
+                { label: "发送给 Claude", primary: true, onClick: () => decide(true) }
             ],
             // Closing the dialog (X, Escape, clicking outside) sends nothing.
             onClose: () => { decide(false); }
@@ -491,13 +491,13 @@ function useChat() {
 function Entry({ entry }) {
     switch (entry.kind) {
         case "user":
-            return e("div", { className: "claude-user" }, e("b", null, "You: "), entry.text);
+            return e("div", { className: "claude-user" }, e("b", null, "您："), entry.text);
         case "text":
             return e("div", { className: "claude-text", dangerouslySetInnerHTML: { __html: markdown(entry.text) } });
         case "tool":
             return e("div", { className: "claude-tool" }, "→ " + entry.text);
         case "action":
-            return e("div", { className: "claude-action" }, e("b", null, "Done: "), entry.text);
+            return e("div", { className: "claude-action" }, e("b", null, "已完成："), entry.text);
         case "error":
             return e("div", { className: "claude-error" }, entry.text);
         default:
@@ -507,12 +507,12 @@ function Entry({ entry }) {
 
 function ChatPanel() {
     const c = useChat();
-    const [input, setInput] = React.useState("");
+    const [输入，setInput] = React.useState("");
     const transcriptRef = React.useRef(null);
     const inputRef = React.useRef(null);
     const lastSuggestion = React.useRef(null);
 
-    // A suggestion from an action fills the input, unless the user already typed something of
+    // A suggestion from an action fills the 输入，unless the user already typed something of
     // their own (an untouched earlier suggestion is replaced).
     React.useEffect(() => {
         if (c.suggestion) {
@@ -539,24 +539,24 @@ function ChatPanel() {
 
     const welcome = c.entries.length === 0
         ? e("div", { className: "claude-info" },
-            "Ask a question about your OIE server, for example ", e("i", null, "Which channels have errors?"), " or ", e("i", null, "Why does this message fail?"),
-            e("br"), "Message content is masked before it is sent to Claude. Actions such as deploying only run after you approve them.")
+            "向您的 OIE 服务器提问，例如 ", e("i", null, "哪些通道有错误？"), " 或 ", e("i", null, "为什么这条消息失败？"),
+            e("br"), "消息内容在发送给 Claude 前会被脱敏。部署等操作仅在您批准后才会执行。")
         : null;
 
     return e("div", { className: "claude-panel" },
         e("div", { className: "claude-contextbar" },
             e("span", { className: "claude-context", title: c.context || "" },
-                c.context ? [e("b", { key: "l" }, "Context: "), c.context] : "No context: Claude looks at the whole server."),
+                c.context ? [e("b", { key: "l" }, "上下文："), c.context] : "无上下文：Claude 查看整个服务器。"),
             e("button", {
                 className: "btn",
-                title: "Ask about the global deploy, undeploy, preprocessor and postprocessor scripts",
+                title: "询问全局部署、卸载、前置处理器和后置处理器脚本",
                 disabled: c.context === GLOBAL_SCRIPTS_CONTEXT,
                 onClick: () => c.open(GLOBAL_SCRIPTS_CONTEXT, GLOBAL_SCRIPTS_SUGGESTION)
-            }, "Global Scripts"),
-            e("button", { className: "btn", disabled: !c.context, onClick: () => c.clearContext() }, "Clear context"),
-            e("button", { className: "btn", title: "Continue one of your earlier conversations", onClick: () => c.chooseConversation() }, "Conversations…"),
-            e("button", { className: "btn", title: "Save this conversation as a Markdown file", disabled: !c.conversationId, onClick: () => c.exportConversation() }, "Export"),
-            e("button", { className: "btn", onClick: () => c.newConversation() }, "New conversation")),
+            }, "全局脚本"),
+            e("button", { className: "btn", disabled: !c.context, onClick: () => c.clearContext() }, "清除上下文"),
+            e("button", { className: "btn", title: "继续之前的对话", onClick: () => c.chooseConversation() }, "对话…"),
+            e("button", { className: "btn", title: "将此对话保存为 Markdown 文件", disabled: !c.conversationId, onClick: () => c.exportConversation() }, "导出"),
+            e("button", { className: "btn", onClick: () => c.newConversation() }, "新对话")),
         e("div", { className: "claude-transcript", ref: transcriptRef },
             welcome,
             c.entries.map((entry, i) => e(Entry, { key: i, entry })),
@@ -565,7 +565,7 @@ function ChatPanel() {
             e("textarea", {
                 ref: inputRef,
                 value: input,
-                placeholder: "Ask Claude… (Ctrl+Enter to send)",
+                placeholder: "向 Claude 提问…（Ctrl+Enter 发送）",
                 onChange: (ev) => setInput(ev.target.value),
                 onKeyDown: (ev) => {
                     if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
@@ -575,8 +575,8 @@ function ChatPanel() {
                 }
             }),
             e("div", { className: "claude-buttons" },
-                e("button", { className: "btn btn-primary", disabled: c.busy || !input.trim(), onClick: send }, "Send"),
-                e("button", { className: "btn", disabled: !c.busy, onClick: () => c.stop() }, "Stop"))),
+                e("button", { className: "btn btn-primary", disabled: c.busy || !input.trim(), onClick: send }, "发送"),
+                e("button", { className: "btn", disabled: !c.busy, onClick: () => c.stop() }, "停止"))),
         e("div", { className: "claude-status" }, c.status || " "));
 }
 
@@ -589,8 +589,8 @@ function ChannelTab(props) {
     const channel = props.channel || (props.ctx && props.ctx.channel) || {};
     React.useEffect(() => {
         if (!channel.id) return;
-        const context = `Channel open in the editor: '${channel.name}' (${channel.id}, revision ${channel.revision}). Claude sees the saved version; unsaved changes in the editor are not visible.`;
-        if (chat.context !== context) chat.open(context, "Explain what this channel does and point out weak spots in its scripts.");
+        const context = `在编辑器中打开的通道：'${channel.name}' (${channel.id}, revision ${channel.revision}). Claude 看到的是已保存的版本；编辑器中未保存的更改不可见。`;
+        if (chat.context !== context) chat.open(context, "解释此通道的功能并指出其脚本中的薄弱环节。");
     }, [channel.id]);
     return e("div", { className: "claude-panel claude-embedded" }, e(ChatPanel));
 }
@@ -643,7 +643,7 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
             show(await call("GET", "/settings"));
             setError(null);
         } catch (err) {
-            setError("Loading settings failed: " + errorText(err));
+            setError("加载设置失败：" + errorText(err));
         }
     }, [show]);
 
@@ -654,10 +654,10 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
         try {
             show(await call("PUT", "/settings", { ...f, maxToolCalls: Number(f.maxToolCalls) || 25, keepConversationsDays: Math.max(0, Math.min(365, Number(f.keepConversationsDays) || 0)) }));
             setError(null);
-            P.ui.toast("Claude Assistant settings saved.", "success");
+            P.ui.toast("Claude 助手设置已保存。", "success");
             return true;
         } catch (err) {
-            setError("Saving failed: " + errorText(err));
+            setError("保存失败：" + errorText(err));
             return false;
         }
     }, [show]);
@@ -671,15 +671,15 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
         if (setSave) setSave(() => saveRef.current());
         if (setTasks) {
             const { taskButton } = P.ui;
-            setTasks("Claude Assistant Tasks", [
-                taskButton("Refresh", "refresh", () => loadRef.current()),
-                taskButton("Save", "save", () => saveRef.current(), { primary: true })
+            setTasks("Claude 助手任务", [
+                taskButton("刷新", "refresh", () => loadRef.current()),
+                taskButton("保存", "save", () => saveRef.current(), { primary: true })
             ]);
         }
         loadRef.current();
     }, []);
 
-    if (!form) return e("div", { className: "claude-settings" }, error ? e("div", { className: "claude-error" }, error) : "Loading…");
+    if (!form) return e("div", { className: "claude-settings" }, error ? e("div", { className: "claude-error" }, error) : "加载中…");
 
     const set = (key) => (ev) => {
         setForm({ ...form, [key]: ev.target.type === "checkbox" ? ev.target.checked : ev.target.value });
@@ -689,74 +689,74 @@ function SettingsPanel({ setTasks, setSave, markDirty, markClean }) {
     const row = (label, control, hint) => e("div", { className: "claude-row" }, e("label", null, label),
         e("div", null, typeof control === "string" ? e("div", { className: "claude-text-value" }, control) : control, hint ? e("div", { className: "claude-hint" }, hint) : null));
 
-    // e.g. "1.2M input, 18.4M read from the cache (94% of the input), 0.3M written to the cache, 0.2M output (the plugin's API key)"
+    // e.g. "1.2M 输入，18.4M 从缓存读取 (94% 的输入), 0.3M 写入缓存，0.2M output (插件的 API 密钥)"
     const compact = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n);
     const tokenLine = (t) => {
         if (!t) return "–";
         const total = t.input + t.cacheRead + t.cacheWrite;
-        const share = total ? ` (${Math.round(100 * t.cacheRead / total)}% of the input)` : "";
-        return `${compact(t.input)} input, ${compact(t.cacheRead)} read from the cache${share}, ${compact(t.cacheWrite)} written to the cache, ${compact(t.output)} output`
-            + (t.scope === "pluginKey" ? " (the plugin's API key)" : " (organization)");
+        const share = total ? ` (${Math.round(100 * t.cacheRead / total)}% 的输入)` : "";
+        return `${compact(t.input)} 输入，${compact(t.cacheRead)} 从缓存读取${share}, ${compact(t.cacheWrite)} 写入缓存，${compact(t.output)} 输出`
+            + (t.scope === "pluginKey" ? " (插件的 API 密钥)" : " (组织)");
     };
 
     let spendLines;
     if (!status.adminApiKeySet) {
-        spendLines = [row("Spend this month:", "–", "Set an Admin API key to show the spend this month.")];
+        spendLines = [row("本月用量：", "–", "设置管理员 API 密钥以显示本月用量。")];
     } else if (spend.state === "loading") {
-        spendLines = [row("Spend this month:", "Loading…")];
+        spendLines = [row("本月用量：", "加载中…")];
     } else if (spend.state === "error") {
-        spendLines = [row("Spend this month:", "–", spend.message)];
+        spendLines = [row("本月用量：", "–", spend.message)];
     } else if (spend.state === "ok") {
         const d = spend.data;
         const note = d.workspaceUsd != null ? null
-            : d.pluginKeyName ? "The plugin's API key has no workspace of its own, so only the organization total is shown."
-                : "The plugin's API key was not found in this organization, so only the organization total is shown.";
+            : d.pluginKeyName ? "插件的 API 密钥没有自己的工作区，因此仅显示组织总计。"
+                : "此组织中未找到插件的 API 密钥，因此仅显示组织总计。";
         spendLines = [
-            row("Spend this month:", e("span", { className: "claude-inline" },
+            row("本月用量：", e("span", { className: "claude-inline" },
                 e("span", { className: "claude-spend" }, `$${d.organizationUsd} (organization, since ${d.monthStart})`),
-                e("button", { className: "btn", onClick: () => loadSpend(true) }, "Refresh")), note),
-            d.workspaceUsd != null ? row("", `of which workspace '${d.workspaceName}' (the plugin's API key): $${d.workspaceUsd}`) : null,
-            row("Tokens this month:", tokenLine(d.tokens))
+                e("button", { className: "btn", onClick: () => loadSpend(true) }, "523765b0")), note),
+            d.workspaceUsd != null ? row("", `51764e2d5de54f5c533a '${d.workspaceName}' (插件的 API 密钥): $${d.workspaceUsd}`) : null,
+            row("本月令牌：", tokenLine(d.tokens))
         ];
     }
 
     const modelList = models.state === "ok" ? models.data.models || [] : [];
     let modelHint;
-    if (models.state === "loading") modelHint = "Loading the model list…";
-    else if (models.state === "error") modelHint = "The model list could not be loaded: " + models.message + " Type a model ID.";
+    if (models.state === "loading") modelHint = "加载模型列表中…";
+    else if (models.state === "error") modelHint = "无法加载模型列表：" + models.message + " 请输入模型 ID。";
     else if (models.state === "ok") {
         const d = models.data;
         const updated = d.fetchedAt ? ", updated " + new Date(d.fetchedAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
         modelHint = d.warning ? e("span", { className: "claude-warning" }, d.warning)
-            : d.source === "anthropic" ? `${modelList.length} models from Anthropic${updated}. You can also type a model ID.`
-                : (d.note || "A fixed list is shown.") + " You can also type a model ID.";
+            : d.source === "anthropic" ? `${modelList.length} 个来自 Anthropic 的模型${updated}. You can also type a model ID.`
+                : (d.note || "显示的是固定列表。") + " 您也可以输入模型 ID。";
     }
 
     return e("div", { className: "claude-settings" },
         error ? e("div", { className: "claude-error" }, error) : null,
-        row("Anthropic API key:", e("input", { type: "password", value: form.apiKey, onChange: set("apiKey"), autoComplete: "off" }),
-            status.apiKeySet ? "Set: " + status.apiKeyHint : "No API key set yet."),
-        row("Model:", e("span", { className: "claude-inline" },
+        row("Anthropic API 密钥：", e("input", { type: "password", value: form.apiKey, onChange: set("apiKey"), autoComplete: "off" }),
+            status.apiKeySet ? "已设置：" + status.apiKeyHint : "尚未设置 API 密钥。"),
+        row("模型：", e("span", { className: "claude-inline" },
             e("input", { type: "text", list: "claude-models", value: form.model, onChange: set("model"), style: { width: 260 } }),
-            e("datalist", { id: "claude-models" }, modelList.map((m) => e("option", { key: m.id, value: m.id, label: m.unlisted ? m.displayName + " – not in the list" : m.displayName }))),
-            e("button", { className: "btn", disabled: models.state === "loading", onClick: () => loadModels(true) }, "Refresh list")), modelHint),
-        row("Effort:", e("select", { value: form.effort, onChange: set("effort") }, EFFORTS.map((x) => e("option", { key: x, value: x }, x)))),
-        row("Response language:", e("select", { value: form.responseLanguage, onChange: set("responseLanguage") }, LANGUAGES.map(([value, label]) => e("option", { key: value, value }, label)))),
-        row("Max. tool calls per question:", e("input", { type: "number", min: 1, max: 100, value: form.maxToolCalls, onChange: set("maxToolCalls"), style: { width: 80 } })),
-        row("Review before sending:", e("select", { value: form.reviewBeforeSending, onChange: set("reviewBeforeSending") }, REVIEWS.map(([value, label]) => e("option", { key: value, value }, label))),
-            "Shows exactly what will be sent to Claude, after masking, so each user can edit it or withhold it first."),
-        row("Keep conversations (days):", e("input", { type: "number", min: 0, max: 365, value: form.keepConversationsDays, onChange: set("keepConversationsDays"), style: { width: 80 } }),
-            "Days a conversation is kept on the server after its last use, so it can be continued after a restart of OIE (Conversations…). Only what was sent to Claude is kept, so masked. 0 = not saved: conversations are gone 4 hours after their last use or on a restart, and saved ones are removed."),
-        row("Extra mask patterns:", e("textarea", { rows: 4, value: form.maskPatterns, onChange: set("maskPatterns") }),
-            "Regular expressions, separated by ;; . They are masked in addition to the built-in rules (HL7 PID, NTE and text over 30 characters, GDT 3000-3107, BSN). The API keys are stored encrypted on the server and never sent back to the Administrator. Leave a key field empty to keep the current key."),
-        e("h3", null, "Usage"),
-        row("Admin API key (optional):", e("input", { type: "password", value: form.adminApiKey, onChange: set("adminApiKey"), autoComplete: "off" }),
+            e("datalist", { id: "claude-models" }, modelList.map((m) => e("option", { key: m.id, value: m.id, label: m.unlisted ? m.displayName + " – 不在列表中" : m.displayName }))),
+            e("button", { className: "btn", disabled: models.state === "loading", onClick: () => loadModels(true) }, "刷新列表")), modelHint),
+        row("努力程度：", e("select", { value: form.effort, onChange: set("effort") }, EFFORTS.map((x) => e("option", { key: x, value: x }, x)))),
+        row("响应语言：", e("select", { value: form.responseLanguage, onChange: set("responseLanguage") }, LANGUAGES.map(([value, label]) => e("option", { key: value, value }, label)))),
+        row("每个问题的最大工具调用次数：", e("input", { type: "number", min: 1, max: 100, value: form.maxToolCalls, onChange: set("maxToolCalls"), style: { width: 80 } })),
+        row("发送前审查：", e("select", { value: form.reviewBeforeSending, onChange: set("reviewBeforeSending") }, REVIEWS.map(([value, label]) => e("option", { key: value, value }, label))),
+            "显示脱敏后将发送给 Claude 的完整内容，每个用户可以先编辑或扣留。"),
+        row("保留对话（天）：", e("input", { type: "number", min: 0, max: 365, value: form.keepConversationsDays, onChange: set("keepConversationsDays"), style: { width: 80 } }),
+            "对话在最后使用后在服务器上保留的天数，以便在 OIE 重启后可以继续（对话…）。仅保留发送给 Claude 的内容（已脱敏）。0 = 不保存：对话在最后使用 4 小时后或重启时消失。"),
+        row("额外脱敏模式：", e("textarea", { rows: 4, value: form.maskPatterns, onChange: set("maskPatterns") }),
+            "正则表达式，以 ;; 分隔。它们在内置规则（HL7 PID、NTE 和超过 30 个字符的文本、GDT 3000-3107、BSN）的基础上额外脱敏。API 密钥在服务器上加密存储，永远不会发送回管理器。留空密钥字段以保留当前密钥。"),
+        e("h3", null, "用量"),
+        row("管理员 API 密钥（可选）：", e("input", { type: "password", value: form.adminApiKey, onChange: set("adminApiKey"), autoComplete: "off" }),
             e("span", { className: "claude-inline" },
-                status.adminApiKeySet ? "Set: " + status.adminApiKeyHint : "No Admin API key set.",
-                status.adminApiKeySet ? e("label", null, e("input", { type: "checkbox", checked: form.clearAdminApiKey, onChange: set("clearAdminApiKey") }), " Remove the Admin API key") : null)),
+                status.adminApiKeySet ? "已设置：" + status.adminApiKeyHint : "未设置管理员 API 密钥。",
+                status.adminApiKeySet ? e("label", null, e("input", { type: "checkbox", checked: form.clearAdminApiKey, onChange: set("clearAdminApiKey") }), " 移除管理员 API 密钥") : null)),
         ...spendLines,
-        row("Credits:", e("a", { className: "btn", href: BILLING_URL, target: "_blank", rel: "noopener noreferrer" }, "Open Billing in Console")),
-        row("", null, "Spend comes from the Anthropic Cost API and needs an Admin API key (sk-ant-admin…, created by an organization admin in the Console). It is in USD, since the 1st of the month (UTC), and runs up to about 5 minutes behind. The credit balance is not available through the API; the button opens the Console's billing page."));
+        row("额度：", e("a", { className: "btn", href: BILLING_URL, target: "_blank", rel: "noopener noreferrer" }, "在控制台中打开账单")),
+        row("", null, "用量数据来自 Anthropic Cost API，需要管理员 API 密钥（sk-ant-admin…，由组织管理员在控制台中创建）。以美元计，从每月 1 日（UTC）开始，最多延迟约 5 分钟。信用余额无法通过 API 获取；此按钮打开控制台的账单页面。"));
 }
 
 // ------------------------------------------------------------------ registration
@@ -780,28 +780,28 @@ export function register(platform) {
 
     platform.registerIcon("claude", ICON_PATH);
 
-    platform.registerNavItem({ id: "claude-assistant", label: "Claude Assistant", icon: "claude", path: "/claude", section: "Plugins", order: 30 });
-    platform.registerView("/claude", platform.reactView(ChatView), { title: "Claude Assistant" });
+    platform.registerNavItem({ id: "claude-assistant", label: "Claude 助手", icon: "claude", path: "/claude", section: "Plugins", order: 30 });
+    platform.registerView("/claude", platform.reactView(ChatView), { title: "Claude 助手" });
 
     platform.registerChannelTab({ id: "claude-assistant", label: "Claude", order: 90, component: ChannelTab });
 
     platform.registerChannelAction({
         id: "claude-assistant.ask",
-        label: "Ask Claude",
+        label: "询问 Claude",
         icon: "claude",
         order: 60,
         onInvoke: (channel) => {
             if (!channel) return;
-            openWith(`Selected channel: '${channel.name}' (${channel.id}).`, "Analyze the status and errors of this channel.");
+            openWith(`选中的通道：'${channel.name}' (${channel.id}).`, "分析此通道的状态和错误。");
         }
     });
 
     // The web admin has no hook on the Global Scripts view, so these go in the command palette.
     if (typeof platform.registerCommand === "function") {
-        platform.registerCommand({ id: "claude-assistant.open", label: "Claude Assistant", icon: "claude", section: "Plugins", keywords: ["claude", "ai", "assistant"], path: "/claude" });
+        platform.registerCommand({ id: "claude-assistant.open", label: "Claude 助手", icon: "claude", section: "Plugins", keywords: ["claude", "ai", "assistant"], path: "/claude" });
         platform.registerCommand({
             id: "claude-assistant.global-scripts",
-            label: "Ask Claude about Global Scripts",
+            label: "询问 Claude 关于全局脚本",
             icon: "claude",
             section: "Plugins",
             keywords: ["claude", "global scripts", "deploy", "preprocessor", "postprocessor"],
@@ -811,14 +811,14 @@ export function register(platform) {
 
     platform.registerCodeTemplateAction({
         id: "claude-assistant.ask",
-        label: "Ask Claude",
+        label: "询问 Claude",
         icon: "claude",
         order: 60,
         onInvoke: (template, ctx) => {
             if (!template || !template.id) return;
-            const library = ctx && ctx.library && ctx.library.name ? ` in library '${ctx.library.name}'` : "";
-            openWith(`Selected code template: '${template.name}' (${template.id})${library}. Claude sees the saved version; unsaved changes in the code template editor are not visible.`,
-                "Explain what this code template does, which channels use it, and point out weak spots.");
+            const library = ctx && ctx.library && ctx.library.name ? ` 在库 '${ctx.library.name}'` : "";
+            openWith(`选中的代码模板：'${template.name}' (${template.id})${library}. Claude 看到的是已保存的版本；代码模板编辑器中未保存的更改不可见。`,
+                "解释此代码模板的功能、哪些通道使用它，并指出薄弱环节。");
         }
     });
 
@@ -826,19 +826,19 @@ export function register(platform) {
     if (typeof platform.registerMessageAction === "function") {
         platform.registerMessageAction({
             id: "claude-assistant.ask",
-            label: "Ask Claude",
+            label: "询问 Claude",
             icon: "claude",
             order: 60,
             onInvoke: (message, ctx) => {
                 const messageId = message && (message.messageId != null ? message.messageId : message.id);
                 if (messageId == null) return;
                 const channelId = (ctx && ctx.channelId) || (message && message.channelId);
-                let context = `Selected message in the message browser: channel ID ${channelId}, message ID ${messageId}`;
-                if (ctx && ctx.metaDataId != null) context += `, connector (metaDataId) ${ctx.metaDataId}`;
-                openWith(context + ".", "What happened to this message? If it failed: why, and how do I fix it?");
+                let context = `在消息浏览器中选中的消息：通道 ID ${channelId}，消息 ID ${messageId}`;
+                if (ctx && ctx.metaDataId != null) context += `，连接器 (metaDataId) ${ctx.metaDataId}`;
+                openWith(context + ".", "这条消息发生了什么？如果失败了：为什么，如何修复？");
             }
         });
     }
 
-    platform.registerSettingsPanel({ label: "Claude Assistant", component: SettingsPanel });
+    platform.registerSettingsPanel({ label: "Claude 助手", component: SettingsPanel });
 }

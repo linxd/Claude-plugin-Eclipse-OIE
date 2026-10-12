@@ -1,197 +1,118 @@
-# Claude Assistant for Open Integration Engine
+# Claude Assistant — Open Integration Engine 插件
 
-An extension for the OIE Administrator that lets you talk to Claude about your server from inside
-the GUI: channels, messages, errors, scripts, code templates and server status. Claude looks the
-facts up itself through the same tools as `oie-mcp-server`, and can propose actions that only run
-after you approve them.
+OIE 管理器的一个扩展，让您在 GUI 内部与 Claude 谈论服务器：通道、消息、错误、脚本、代码模板和服务器状态。Claude 通过与 `oie-mcp-server` 相同的工具自行查找事实，并可以提议仅在您批准后才执行的操作。
 
-**New here?** Read the [User Manual](docs/USER_MANUAL.md) for installation, setup, daily use and
-troubleshooting.
+**初次使用？** 请阅读[用户手册](docs/USER_MANUAL.md)了解安装、设置、日常使用和故障排除。
 
-**Training:** the online course
-[Claude Assistant for Eclipse OIE](https://eclipse-oie.moodiy.cloud/course/view.php?id=3) at the
-Academy for Eclipse OIE covers the same topics, with quizzes and hands-on exercises on a test channel.
+**培训：** Eclipse OIE 学院的在线课程 [Claude Assistant for Eclipse OIE](https://eclipse-oie.moodiy.cloud/course/view.php?id=3) 涵盖相同的主题，并提供测验和测试通道的实操练习。
 
-> **Unofficial plugin.** This is a community-built plugin. It is not affiliated with, endorsed by or
-> supported by Anthropic. Claude and Anthropic are trademarks of Anthropic, PBC.
+> **非官方插件。** 这是一个社区构建的插件。它与 Anthropic 无关、未经其认可或支持。Claude 和 Anthropic 是 Anthropic, PBC 的商标。
 >
-> **Your responsibility.** Each organization that installs the plugin is responsible for its own use
-> of it: the legal basis and the data processing agreement with Anthropic for any patient data it
-> sends, and the changes its users approve in OIE. The plugin is provided as is, without warranty
-> (see the [Mozilla Public License 2.0](LICENSE)).
+> **您的责任。** 每个安装此插件的组织负责其自己的使用：法律基础和与 Anthropic 的数据处理协议（涉及发送的任何患者数据），以及其用户在 OIE 中批准的更改。插件按原样提供，不提供保证（参见 [Mozilla Public License 2.0](LICENSE)）。
 
-## Where to find Claude in the Administrator
+## 在管理器中找到 Claude 的位置
 
-| Place | Task | Context sent along |
+| 位置 | 任务 | 发送的上下文 |
 |---|---|---|
-| Left menu, **Other** | *Claude Assistant* | none: questions about the whole server |
-| **Dashboard** (task + right-click) | *Ask Claude* | selected channel(s)/connectors |
-| **Message browser** (task + right-click) | *Ask Claude* | selected message (channel, message ID, connector) |
-| **Channel editor** (task + right-click) | *Ask Claude* | the channel that is open (saved version) |
-| **Code Templates** (task + right-click, one template selected) | *Ask Claude* | the selected code template and its library |
-| **Global Scripts** (task + right-click) | *Ask Claude* | the global deploy/undeploy/pre/postprocessor scripts |
+| 左侧菜单，**其他** | *Claude 助手* | 无：关于整个服务器的问题 |
+| **仪表盘**（任务 + 右键） | *询问 Claude* | 选中的通道/连接器 |
+| **消息浏览器**（任务 + 右键） | *询问 Claude* | 选中的消息（通道、消息 ID、连接器） |
+| **通道编辑器**（任务 + 右键） | *询问 Claude* | 当前打开的通道（已保存版本） |
+| **代码模板**（任务 + 右键，选中一个模板） | *询问 Claude* | 选中的代码模板及其库 |
+| **全局脚本**（任务 + 右键） | *询问 Claude* | 全局部署/卸载/前置/后置处理器脚本 |
+| **Claude 页面**，按钮 **全局脚本** | 全局脚本作为上下文 |
+| **命令面板** (Ctrl+K) | *Claude 助手*、*询问 Claude 关于全局脚本* |
+| **设置**，选项卡 **Claude 助手** | 与 Swing 相同的设置和用量 |
 
-The chat window stays open next to the Administrator. Ctrl+Enter sends; *New conversation* starts
-over; *Stop* aborts a running question. *Export…* saves the conversation as a Markdown file, and
-*Conversations…* continues one of your earlier conversations.
+两个界面使用相同的 REST API，因此脱敏、权限、操作批准和审计日志完全相同；对话在您在 Claude 页面和其他视图之间移动时保持打开。
 
-### Web administrator
+### Web 管理器
 
-The extension also ships a UI for the OIE web administrator (`oie-webadmin`). It needs the
-**Web Support** (`websupport`) extension on the engine, which serves the plugin's `webadmin/` folder.
+此扩展还包含 OIE Web 管理器（`oie-webadmin`）的界面。它需要引擎上的 **Web Support**（`websupport`）扩展，用于服务插件的 `webadmin/` 文件夹。
 
-| Place | What |
+| 位置 | 功能 |
 |---|---|
-| Left rail, **Plugins > Claude Assistant** | the chat as a full page |
-| **Channel editor**, tab **Claude** | the chat with the open channel as context |
-| **Channels** view, right-click | *Ask Claude* about the selected channel |
-| **Message browser**, right-click | *Ask Claude* about the selected message (web admin API 4.7+) |
-| **Code Templates**, right-click | *Ask Claude* about the selected code template |
-| **Claude page**, button **Global Scripts** | the global scripts as context (the web admin has no hook on the Global Scripts view itself) |
-| **Command palette** (Ctrl+K) | *Claude Assistant*, and *Ask Claude about Global Scripts* |
-| **Settings**, tab **Claude Assistant** | the same settings and usage as in Swing, using the settings page's own Save |
+| 左侧导航，**Plugins > Claude 助手** | 全屏聊天页面 |
+| **通道编辑器**，选项卡 **Claude** | 以当前通道为上下文的聊天 |
+| **通道** 视图，右键 | *询问 Claude* 关于选中的通道 |
+| **消息浏览器**，右键 | *询问 Claude* 关于选中的消息（Web 管理器 API 4.7+） |
+| **代码模板**，右键 | *询问 Claude* 关于选中的代码模板 |
+| **Claude 页面**，按钮 **全局脚本** | 全局脚本作为上下文（Web 管理器本身没有全局脚本视图的钩子） |
 
-Both UIs use the same REST API, so masking, permissions, action approval and the audit log are
-identical; a conversation stays open while you move between the Claude page and other views.
+## Claude 能做什么
 
-## What Claude can do
+**读取**（立即）：服务器信息、带状态和计数器的通道、通道配置和脚本、全局脚本、每个连接器的统计信息、搜索和查看消息、事件、服务器日志、代码模板和配置映射的键（从不包含值）。
 
-**Read** (immediately): server info, channels with status and counters, channel configuration and
-scripts, the global scripts, statistics per connector, searching and viewing messages, events, the server log, code
-templates and the keys of the Configuration Map (never the values).
+**操作**（仅在批准对话框中点击 *执行* 后）：部署/卸载通道、启动/停止/暂停/恢复、重置统计、重新处理消息、向通道发送消息，以及更改 JavaScript 脚本（部署/卸载/前置/后置处理器、过滤规则或转换器步骤）或全局脚本，更改连接器的过滤规则或转换器步骤（任何类型：Mapper、Message Builder、Rule Builder、Iterator、XSLT 等），以及创建新通道（或其更改后的副本）。脚本、过滤器或转换器更改会以新修订版本保存通道但不会部署它；如果通道在此期间发生了更改，则不会保存。批准对话框显示当前和新的规则或步骤，以及 OIE 为每个新规则生成的脚本。新通道以禁用和未部署状态创建，凭据留空由您填写。每个执行的操作都会写入审计日志，事件为 `Claude Assistant: …`，以批准用户的名义。
 
-**Actions** (only after clicking *Run* in an approval dialog): deploy/undeploy a channel,
-start/stop/pause/resume, reset statistics, reprocess a message, send a message to a channel and
-change a JavaScript script (deploy/undeploy/pre/postprocessor, filter rule or transformer step) or a
-global script, change the filter rules or transformer steps of a connector (any type: Mapper, Message
-Builder, Rule Builder, Iterator, XSLT, ...) and create a new channel (or a changed copy of one).
-A script, filter or transformer change saves the channel with a new revision but does not deploy it;
-if the channel changed in the meantime, nothing is saved. The approval dialog shows the current and
-new rules or steps, and the script OIE generates for each new one. A new channel is created disabled
-and undeployed, with credentials left empty for you to fill in. Every executed action is written to the audit log as
-event `Claude Assistant: …`, in the name of the user who approved it.
+## 隐私
 
-## Privacy
+发送到 Anthropic API 的所有内容（您的问题、上下文、消息内容、日志、错误、通道配置）首先经过与 oie-mcp-server 中 `mask.ts` 相同规则的脱敏器处理：
 
-Everything sent to the Anthropic API (your questions, context, message content, logs, errors,
-channel configuration) first goes through a masker with the same rules as `mask.ts` in
-oie-mcp-server:
+- **HL7 v2**：PID 段字段 2-7、9、11、13、14、18-21、23、29 和 PV1 段字段 7-9、17、19、50（医生、就诊号）；整个 NK1、GT1、IN1、IN2 和 MRG 段（除 set ID 外）（ER7 和 XML）
+- **FHIR** JSON 和 XML 资源：Patient、RelatedPerson、Person 和 Practitioner 中的姓名、标识符、电话、地址、出生日期、照片、联系人和个人扩展（如母亲婚前姓）；每个资源的标识符值、引用显示、叙述（`text.div`）和 XML 注释。结构、代码和其他资源保持可读
+- **HL7 v2 NTE** 注释（NTE-3 起）和每个超过 30 个字符的 HL7 文本值（ER7 和 XML）
+- **GDT** 患者字段 3000-3107（原始和 XML）
+- **EDIFACT** 医疗消息：MEDLAB 中的患者（PID、PAD）、医生（ART、ARA、KOP）和样本号（IDE）；其他 MED* 消息中的 PID、NAD、PNA、ADR、COM、出生日期和 FTX 文本
+- 通过十一校验的 9 位数字（荷兰 BSN）
+- 通道配置中的凭据：名为 password、passphrase、secret、token 或 apiKey 的元素
+- 您在 *设置 > Claude 助手* 中自定义的模式
 
-- HL7 v2 PID fields 2-7, 9, 11, 13, 14, 18-21, 23, 29 and PV1 fields 7-9, 17, 19, 50 (doctors, visit
-  number); whole NK1, GT1, IN1, IN2 and MRG segments except the set ID (ER7 and XML)
-- FHIR resources in JSON and XML: in Patient, RelatedPerson, Person and Practitioner the name,
-  identifier, telecom, address, birthDate, photo, contact and personal extensions (e.g. mother's
-  maiden name); in every resource identifier values, reference displays, the narrative (`text.div`)
-  and XML comments. Structure, codes and other resources stay readable
-- HL7 v2 NTE comments (NTE-3 onwards) and every HL7 text value longer than 30 characters, such as
-  free-text notes or a base64 PDF in OBX-5; shorter coded values stay readable (ER7 and XML)
-- GDT patient fields 3000-3107 (raw and XML from the GDT data type plugin)
-- EDIFACT health messages, raw and XML from the EDIFACT data type plugin: in MEDLAB the patient
-  (PID, PAD), the doctors (ART, ARA, KOP) and the sample number (IDE); in other MED* messages PID,
-  NAD, PNA, ADR, COM, the date of birth and the FTX text; long values in both (not in ZKH, AFD). Tags, qualifiers and
-  results (BEP) stay readable; trade messages (ORDERS, INVOIC) are not masked
-- 9-digit numbers that pass the eleven-test (Dutch BSN)
-- credentials in channel configuration: elements named like password, passphrase, secret, token or apiKey
-- your own patterns under *Settings > Claude Assistant*
+**发送前审查。** 在消息内容、日志行或事件发送给 Claude 之前，对话框会显示脱敏后将发送的内容。您可以编辑文本并发送（*发送给 Claude*）或扣留（*不发送*，或关闭对话框）；编辑后的文本会再次脱敏。*设置 > Claude 助手 > 发送前审查* 设置范围：*消息内容、日志和事件*（默认）、*所有内容，包括我的问题*或*关闭*。
 
-**Review before sending.** Before message content, log lines or events go to Claude, a dialog shows
-exactly what would be sent, after masking. You can edit the text, send it (*Send to Claude*) or
-withhold it (*Don't send*, or close the dialog); edited text is masked again. *Settings > Claude
-Assistant > Review before sending* sets the scope: *Message content, logs and events* (default),
-*Everything, including my question*, or *Off*.
+这是安全网而非匿名化。仅当您有法律基础和与 Anthropic 的数据处理协议时才发送真实患者数据。对话仅对启动它们的用户可见。默认情况下它们仅存在于服务器内存中（在最后使用 4 小时后或重启时清除）；设置 *保留对话*（天）后，它们也会保存在 OIE 应用数据文件夹（`claude-assistant/conversations/`）中，完全按发送给 Claude 时的脱敏方式保存，以便在重启后继续。将其设回 0 会删除已保存的对话。
 
-This is a safety net, not anonymisation. Only send real patient data through it if you have a legal
-basis and a data processing agreement with Anthropic. Conversations are only visible to the user who
-started them. By default they live only in the server's memory (cleared 4 hours after last use or on a
-restart); with *Keep conversations* (days) set, they are also saved in the OIE application data folder
-(`claude-assistant/conversations/`), masked exactly as sent to Claude, so they can be continued after
-a restart. Setting it back to 0 removes the saved ones.
+## 权限
 
-## Permissions
+此扩展添加三个权限（在 RBAC 扩展中可见）：
 
-The extension adds three permissions (visible in the RBAC extension):
+- **使用 Claude 助手**：聊天（只读）
+- **运行 Claude 助手操作**：批准提议的操作
+- **管理 Claude 助手设置**：更改 API 密钥、模型和脱敏模式
 
-- **Use Claude Assistant**: chat (read only)
-- **Run Claude Assistant actions**: approve proposed actions
-- **Manage Claude Assistant settings**: change the API key, model and mask patterns
+Claude 只能获得用户在 OIE 中可以看到或执行的内容：每个工具都会检查用户自己的 OIE 权限（安装了 RBAC 扩展时通过它检查），例如消息搜索需要 *查看消息* 权限。用户缺少的工具会被跳过，并告知 Claude 缺少哪个权限；操作在批准时会再次检查。拥有通道限制的用户无法使用助手，因为工具可以看到所有通道。
 
-Claude only gets what the user could see or do in OIE: every tool checks the user's own OIE
-permission (via the RBAC extension when installed), e.g. *View Messages* for message search. Tools
-the user lacks are skipped and Claude is told which permission is missing; an action is checked
-again when it is approved. Users with channel restrictions cannot use the assistant, because the
-tools see all channels.
+每次向 Anthropic 发送消息数据、日志行或事件时，审计日志会记录事件 `Claude Assistant: data sent to Anthropic`，包含用户、工具、通道、消息 ID 和是否已审查。内容本身从不记录。
 
-Every time message data, log lines or events are sent to Anthropic, the audit log gets an event
-`Claude Assistant: data sent to Anthropic` with the user, tool, channel, message IDs and whether it
-was reviewed. The content itself is never logged.
+## 设置
 
-## Setup
+1. 通过 *设置 > 扩展 > 安装扩展* 安装 `claude-assistant-<version>.zip`（或解压到 `<OIE_HOME>/extensions/`）并重启 OIE 服务。检查 `extensions/claude-assistant/lib/` 是否包含引擎 jar 文件。
+2. 转到 *设置 > Claude 助手*，输入 Anthropic API 密钥（来自 [console.anthropic.com](https://console.anthropic.com)）并点击 *保存*。密钥加密存储，永远不会发送回管理器；保存后字段会清空，下方显示 *已设置：sk-ant-…xxxx*。
+3. 默认值：模型 `claude-opus-5`，努力程度 `high`，每个问题最多 25 次工具调用，响应语言 *自动*（Claude 以问题的语言回答）。**模型** 列表来自 Anthropic 的 Models API（按新旧排序，每天刷新），因此新模型无需插件更新即可出现；无连接时显示固定列表。在 **响应语言** 中选择固定语言可让 Claude 始终以该语言回答。
 
-1. Install `claude-assistant-<version>.zip` via *Settings > Extensions > Install Extension* (or unzip
-   it into `<OIE_HOME>/extensions/`) and restart the OIE service. Check that
-   `extensions/claude-assistant/lib/` contains the engine jars.
-2. Go to *Settings > Claude Assistant*, enter an Anthropic API key (from
-   [console.anthropic.com](https://console.anthropic.com)) and click *Save*. The key is stored
-   encrypted and never sent back to the Administrator; the field is emptied after saving and the
-   line below it shows *Set: sk-ant-…xxxx*.
-3. Defaults: model `claude-opus-5`, effort `high`, at most 25 tool calls per question, response
-   language *Automatic* (Claude answers in the language of the question). The **Model** list comes
-   from Anthropic's Models API for your key (newest first, refreshed daily), so new models appear
-   without a plugin update; without a connection a fixed list is shown. Pick a fixed language in
-   **Response language** to have Claude always answer in that language, whatever language the
-   question or the server data is in.
+### 用量：费用和额度
 
-### Usage: spend and credits
+*设置 > Claude 助手* 的 *用量* 部分显示整个组织的 **本月用量**，以及插件 API 密钥所属工作区的单独用量。数据来自 Anthropic [Cost API](https://platform.claude.com/docs/en/manage-claude/usage-cost-api)，需要可选的 **管理员 API 密钥**（`sk-ant-admin01-…`），只有组织管理员可以在控制台中创建。金额以美元计，从每月 1 日（UTC）开始，最多延迟约 5 分钟，缓存一分钟；*刷新* 会重新获取。**本月令牌**（来自 Usage API，同一密钥）显示插件密钥的输入、提示缓存读写和输出。查看用量需要 *管理 Claude 助手设置* 权限。
 
-The *Usage* section of *Settings > Claude Assistant* shows **Spend this month** for the whole
-organization and, separately, for the workspace the plugin's API key belongs to. It comes from the
-Anthropic [Cost API](https://platform.claude.com/docs/en/manage-claude/usage-cost-api) and needs an
-optional **Admin API key** (`sk-ant-admin01-…`), which only an organization admin can create in the
-Console (not available for individual accounts). Amounts are in USD since the 1st of the month (UTC),
-run up to about 5 minutes behind and are cached for a minute; *Refresh* fetches them again.
-**Tokens this month** (from the Usage API, same key) shows the plugin key's input, prompt-cache reads
-and writes, and output, so you can see how much of the input the cache serves.
-Viewing spend requires the *Manage Claude Assistant settings* permission.
+组织的 **信用余额** 无法通过任何 Anthropic API 获取，因此选项卡提供 *在控制台中打开账单* 按钮。
 
-The organization's **credit balance** is not available through any Anthropic API, so the tab offers
-an *Open Billing in Console* button instead.
+### 无网络连接
 
-### Without internet
+只有助手停止工作；通道、消息处理和两个管理器不受影响，插件在启动时或后台不建立连接。问题会以 *无法从 OIE 服务器访问 Anthropic API (…)* 结尾，并说明原因（例如 `UnknownHostException` 或 `Connect timed out`）；对话会保留，因此您可以在连接恢复后再次提问。连接在 10 秒后超时，并尝试三次，因此即使是静默丢弃数据包的防火墙也会在约半分钟内给出消息。回答本身可能仍需要最多 10 分钟。
 
-Only the assistant stops working; channels, message processing and both Administrators are not
-affected, and the plugin makes no connections at startup or in the background. A question then ends
-with *Cannot reach the Anthropic API from the OIE server (…)*, naming the cause (for example
-`UnknownHostException` or `Connect timed out`); the conversation is kept, so you can ask again once
-the connection is back. Connecting times out after 10 seconds and is tried three times, so even a
-firewall that silently drops packets gives the message within about half a minute. Answers
-themselves may still take up to 10 minutes.
+OIE 服务器必须能够访问 `https://api.anthropic.com`。在网关或代理后面？在 `conf/custom.vmoptions` 中添加例如 `-Doie.claude.baseUrl=https://gateway.example/anthropic`。
 
-The OIE server must be able to reach `https://api.anthropic.com`. Behind a gateway or proxy? Add for
-example `-Doie.claude.baseUrl=https://gateway.example/anthropic` to `conf/custom.vmoptions`.
+## 构建
 
-## Building
-
-JDK 11+ and Maven; the engine jars are taken from an OIE installation (`-Doie.home=...`, default
-`C:/Program Files/OpenIntegrationEngine`).
+JDK 11+ 和 Maven；引擎 jar 从 OIE 安装获取（`-Doie.home=...`，默认 `C:/Program Files/OpenIntegrationEngine`）。
 
 ```bash
 mvn package
 ```
 
-Result: `target/claude-assistant-<version>.zip`.
+结果：`target/claude-assistant-<version>.zip`。
 
-See the [development guide](docs/development.md) for the engine jars to install, the architecture (the isolated engine, tools, approval, masking, permissions), testing and releasing.
+参见[开发指南](docs/development.md)了解要安装的引擎 jar、架构（隔离引擎、工具、批准、脱敏、权限）、测试和发布。
 
-### Structure
+### 结构
 
-- `shared` – the REST interface (`/api/extensions/claude`); JSON as text, so no plugin classes have
-  to pass through OIE's XStream serializer.
-- `server` – service plugin, servlet, tools, masker, conversations and jobs. Runs on the OIE classpath.
-- `engine` – the loop on the Anthropic Java SDK. It sits in `lib/` together with the SDK, Jackson
-  2.19, Kotlin and OkHttp and is loaded in its own child-first class loader: OIE ships Jackson 2.14,
-  and the SDK's Kotlin reflection does not work after relocation (shading).
-- `client` – Swing: chat window, tasks in dashboard/message browser/channel editor, settings screen.
+- `shared` – REST 接口（`/api/extensions/claude`）；JSON 作为文本传输，因此插件类无需经过 OIE 的 XStream 序列化器。
+- `server` – 服务插件、servlet、工具、脱敏器、对话和作业。运行在 OIE 类路径上。
+- `engine` – Anthropic Java SDK 上的循环。它与 SDK、Jackson 2.19、Kotlin 和 OkHttp 一起位于 `lib/` 中，并在其自己的子优先类加载器中加载：OIE 附带 Jackson 2.14，SDK 的 Kotlin 反射在重命名（shading）后无法工作。
+- `client` – Swing：聊天窗口、仪表盘/消息浏览器/通道编辑器中的任务、设置界面。
 
-The engine streams each answer from the API; the client polls for progress every 0.8 s
-(`GET /jobs/{id}`) and shows the answer growing while Claude writes it (`partial` in the job), so
-long answers do not run into the Administrator's HTTP timeout.
+引擎从 API 流式传输每个回答；客户端每 0.8 秒轮询进度（`GET /jobs/{id}`）并在 Claude 写入时显示回答增长（作业中的 `partial`），因此长回答不会触发管理器的 HTTP 超时。
+
+## 许可证
+
+[Mozilla Public License 2.0](LICENSE)

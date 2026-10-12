@@ -1,10 +1,13 @@
 {
   "schemaVersion": 1,
   "id": "claude-assistant",
-  "name": "Claude Assistant",
-  "description": "Chat with Claude inside the OIE Administrator and web administrator about channels, messages, errors and scripts. Patient data (HL7, FHIR, GDT, EDIFACT) is masked before it leaves the server, and actions such as deploying or changing scripts, filters and transformers only run after the user approves them. Needs your own Anthropic API key. Unofficial plugin, not affiliated with or endorsed by Anthropic.",
+  "name": "Claude 助手",
+  "description": "在 OIE 管理器和 Web 管理器中与 Claude 聊天，讨论通道、消息、错误和脚本。患者数据（HL7、FHIR、GDT、EDIFACT）在离开服务器前会被脱敏，部署或更改脚本、过滤器和转换器等操作仅在用户批准后才会执行。需要您自己的 Anthropic API 密钥。非官方插件，与 Anthropic 无关。",
   "type": "plugin",
-  "ui": ["web", "swing"],
+  "ui": [
+    "web",
+    "swing"
+  ],
   "version": "1.1.0",
   "minEngineVersion": "4.6.0",
   "maxEngineVersion": null,
@@ -14,7 +17,17 @@
   "documentation": "https://github.com/matthydehoog/Claude-plugin-Eclipse-OIE/blob/main/docs/USER_MANUAL.md",
   "storeDocs": "README.md",
   "license": "MPL-2.0",
-  "authors": ["Matthy.J. de Hoog"],
-  "keywords": ["claude", "ai", "assistant", "anthropic", "troubleshooting", "masking", "healthcare"],
+  "authors": [
+    "Matthy.J. de Hoog"
+  ],
+  "keywords": [
+    "claude",
+    "ai",
+    "assistant",
+    "anthropic",
+    "troubleshooting",
+    "masking",
+    "healthcare"
+  ],
   "deprecated": false
 }
